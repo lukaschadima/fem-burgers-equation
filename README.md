@@ -25,5 +25,4 @@ stability/accuracy tradeoffs that matter in real PDE solvers.
 
 ## Status
 
-Work in progress — part of an ongoing bachelor thesis (2025–present), 
-supervised by doc. Václav Kučera.
+Work in progress — part of an ongoing bachelor thesis (2025–present)
