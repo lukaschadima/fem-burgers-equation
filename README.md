@@ -93,6 +93,23 @@ params = burgers_params(2, 0.05, 10);   % example 2, nu=0.05, omega=10
 [x, U_history, t] = solve_burgers_equation(2, 32, 0.001, params, 'imex_ars232');
 ```
 
+
+## Example results
+
+Plots from the analysis scripts (`results/`):
+
+- [`convergence_L2.pdf`](results/convergence_L2.pdf) / [`convergence_H1.pdf`](results/convergence_H1.pdf) —
+  spatial convergence rates for `p = 1, 2, 3`, confirming the expected `O(h^(p+1))` (L2) and
+  `O(h^p)` (H1) rates.
+- [`stability_L2_all.pdf`](results/stability_L2_all.pdf) — time-convergence comparison across
+  DIRK and IMEX-ARS schemes, showing each recovers its expected order.
+- [`stability_cpu_all.pdf`](results/stability_cpu_all.pdf) — CPU cost per scheme as `dt` shrinks.
+- [`stability_efficiency.pdf`](results/stability_efficiency.pdf) — accuracy vs. CPU time for each
+  scheme; the most useful plot for comparing methods, since it shows which ones give the best
+  accuracy per unit of compute rather than just per time step.
+
+
+
 ## Notes
 
 - `analysis/test_stability_legacy.m` is an earlier, simpler version of the
