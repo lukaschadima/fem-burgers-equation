@@ -7,7 +7,9 @@ Physics, General Mathematics / Numerical Analysis).
 The project implements a spatial discretization with Lagrange finite elements of
 arbitrary order, combined with a range of time-stepping schemes — from simple
 Euler methods up to high-order fully implicit and IMEX Runge-Kutta schemes — and
-includes convergence and stability studies comparing them.
+includes convergence and stability studies comparing them. `spectral-methods/`
+holds an earlier, alternative approach to the same problem using Chebyshev
+collocation instead of finite elements — see below.
 
 ## The problem
 
@@ -27,58 +29,73 @@ Two test problems are included, both with known exact solutions used to measure
 convergence:
 
 - **Example 1 (Cole-Hopf):** an exact solution derived via the Cole-Hopf
-  transformation, which linearizes Burgers' equation into the heat equation.
+transformation, which linearizes Burgers' equation into the heat equation.
 - **Example 2 (Manufactured solution):** `u(x,t) = sin(pi*x)*sin(omega*t)`,
-  with a forcing term `f` derived to make this an exact solution — useful for
-  isolating and testing time-integration accuracy independently of spatial error.
+with a forcing term `f` derived to make this an exact solution — useful for
+isolating and testing time-integration accuracy independently of spatial error.
 
 ## What's implemented
 
 **Spatial discretization (`src/core/`)**
+
 - Lagrange finite elements of order `p = 1, 2, 3, 4` on a uniform mesh
 - Gauss-Legendre quadrature (closed-form for low order, Newton's method on
-  Legendre polynomials for higher order)
+Legendre polynomials for higher order)
 - Assembly of the mass matrix, stiffness matrix, nonlinear advection term, and
-  its Jacobian (needed for Newton iterations in implicit schemes)
+its Jacobian (needed for Newton iterations in implicit schemes)
 
 **Time integration (`src/solvers/`)**
+
 - Explicit Euler, Implicit Euler, Crank-Nicolson (baseline methods)
 - Explicit Runge-Kutta: ERK1–ERK4
 - Fully implicit SDIRK2 / SDIRK3 (Newton iteration on the full nonlinear system
-  at every stage)
+at every stage)
 - IMEX (implicit-explicit) ARS schemes: ARS(1,1,1), ARS(1,2,2), ARS(2,3,2),
-  ARS(3,4,3) — diffusion treated implicitly (linear solve only, no Newton),
-  advection treated explicitly
+ARS(3,4,3) — diffusion treated implicitly (linear solve only, no Newton),
+advection treated explicitly
 
-The IMEX schemes are the practically interesting part: they avoid the harsh
-`dt ~ h^2` stability restriction that explicit methods have on the diffusion
+The IMEX schemes are the practically interesting part: they avoid the harsh `dt ~ h^2` stability restriction that explicit methods have on the diffusion
 term, without paying for a full nonlinear solve at every stage the way fully
 implicit DIRK methods do.
 
 **Analysis (`analysis/`)**
+
 - Spatial convergence study across polynomial order `p` and mesh size `n`
 - Time-stepping stability and convergence-order comparison across all methods
 - Accuracy-vs-CPU-time efficiency comparison (which method gives the best
-  accuracy per unit of compute)
+accuracy per unit of compute)
+
+**Alternative approach (`spectral-methods/`)**
+
+Before landing on FEM, I tried the same equation with Chebyshev (pseudospectral)
+collocation — Chebfun's `pde15s` first to sanity-check the two exact solutions,
+then my own Chebyshev differentiation matrices with hand-rolled IMEX Euler,
+then the same discretization with a proper IMEX RK ARS(3,4,3) stage loop. FEM's
+local basis and support for local mesh refinement is what the thesis needed;
+see [`spectral-methods/README.md`](spectral-methods/README.md) for the
+progression and why the trade-off went that way.
 
 ## Repository structure
 
 ```
 fem-burgers-equation/
-├── setup_paths.m              <- run this first (see below)
+├── setup_paths.m               <- run this first (see below)
 ├── src/
-│   ├── core/                  <- FEM assembly, basis functions, quadrature
+│   ├── core/                   <- FEM assembly, basis functions, quadrature
 │   ├── solvers/                <- time-stepping schemes, Butcher tables
-│   └── problems/               <- test problem definitions (IC, exact sol., source)
-├── analysis/                   <- convergence and stability studies
-└── results/                    <- example output plots (PDF)
+│   └── problems/                <- test problem definitions (IC, exact sol., source)
+├── analysis/                    <- convergence and stability studies
+├── spectral-methods/            <- alternative approach: Chebyshev collocation
+└── results/                     <- example output plots (PDF)
 ```
 
 ## Running it
 
-Requires MATLAB (developed on R2023a+, no special toolboxes needed).
+Requires MATLAB (developed on R2023a+, no special toolboxes needed for `src/`
+and `analysis/`; `spectral-methods/` additionally needs the
+[Chebfun](https://www.chebfun.org/) toolbox).
 
-```matlab
+```
 setup_paths                  % adds src/ and analysis/ to the MATLAB path
 
 % Example: run the full stability + convergence comparison across all
@@ -93,31 +110,14 @@ params = burgers_params(2, 0.05, 10);   % example 2, nu=0.05, omega=10
 [x, U_history, t] = solve_burgers_equation(2, 32, 0.001, params, 'imex_ars232');
 ```
 
-
-## Example results
-
-Plots from the analysis scripts (`results/`):
-
-- [`convergence_L2.pdf`](results/convergence_L2.pdf) / [`convergence_H1.pdf`](results/convergence_H1.pdf) —
-  spatial convergence rates for `p = 1, 2, 3`, confirming the expected `O(h^(p+1))` (L2) and
-  `O(h^p)` (H1) rates.
-- [`stability_L2_all.pdf`](results/stability_L2_all.pdf) — time-convergence comparison across
-  DIRK and IMEX-ARS schemes, showing each recovers its expected order.
-- [`stability_cpu_all.pdf`](results/stability_cpu_all.pdf) — CPU cost per scheme as `dt` shrinks.
-- [`stability_efficiency.pdf`](results/stability_efficiency.pdf) — accuracy vs. CPU time for each
-  scheme; the most useful plot for comparing methods, since it shows which ones give the best
-  accuracy per unit of compute rather than just per time step.
-
-
-
 ## Notes
 
 - `analysis/test_stability_legacy.m` is an earlier, simpler version of the
-  stability comparison (3 methods); `test_stability_new.m` is the current,
-  more complete version (10 methods, cleaner plots). Kept both since the
-  legacy version is smaller and easier to read as a starting point.
+stability comparison (3 methods); `test_stability_new.m` is the current,
+more complete version (10 methods, cleaner plots). Kept both since the
+legacy version is smaller and easier to read as a starting point.
 - This is bachelor's thesis work in progress — the codebase will keep
-  evolving as the thesis is finalized.
+evolving as the thesis is finalized.
 
 ## License
 
